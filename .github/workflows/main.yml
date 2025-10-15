@@ -8,26 +8,28 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      DRY_RUN: false  # Set to 'true' for testing (skips commit/push)
     steps:
       - name: Checkout Fork
         uses: actions/checkout@v4
         with:
-          ref: master  # Your fork's target branch
+          ref: master  # Updated to 'master' based on your logs; change to 'main' if needed
           fetch-depth: 0  # Full history for resets
-          token: ${{ secrets.GITHUB_TOKEN }}  # Default token (no PAT needed)
+          token: ${{ secrets.GITHUB_TOKEN }}  # Default token (no PAT)
 
       - name: Debug Git Status (Before Sync)
         run: |
           git status
           git branch -a
           git remote -v
-          ls -la .github/workflows/  # Verify your workflow files exist
+          ls -la .github/workflows/ || echo "Workflows directory not found (expected if upstream lacks it)"
 
       - name: Sync with Upstream (Protecting Workflows, No Force-Push)
         env:
-          UPSTREAM_REPO: https://github.com/gookie-dev/StepDaddyLiveHD.git  # Full URL of upstream repo (update if needed)
-          UPSTREAM_BRANCH: master  # Upstream branch to copy from
-          TARGET_BRANCH: master  # Your fork's branch to update
+          UPSTREAM_REPO: https://github.com/gookie-dev/StepDaddyLiveHD  # Updated from your logs; confirm this is correct
+          UPSTREAM_BRANCH: master  # Upstream branch (matched to logs)
+          TARGET_BRANCH: master  # Your fork's branch (matched to logs)
         run: |
           # Add upstream remote
           git remote add upstream $UPSTREAM_REPO || true
@@ -41,22 +43,30 @@ jobs:
           git checkout $TARGET_BRANCH
           git reset --hard upstream/$UPSTREAM_BRANCH
 
-          # Restore custom workflow files
+          # Restore custom workflow files (create directory if missing)
+          mkdir -p .github/workflows/  # NEW: Ensures the directory exists before copy
           cp -r temp-workflows/* .github/workflows/ || true
           rm -rf temp-workflows
 
           # Add restored workflows
           git add .github/workflows/ || true
 
-          # Commit changes
-          git commit -m "Synced from upstream, preserving custom workflows" || echo "No changes to commit"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry-run mode: Skipping commit and push"
+          else
+            # Commit changes
+            git commit -m "Synced from upstream, preserving custom workflows" || echo "No changes to commit"
 
-          # Safe push (no --force; may fail if divergences prevent it)
-          git push origin $TARGET_BRANCH || echo "Push failed - manual resolution needed (e.g., resolve conflicts or use force locally)"
+            # Pull to fast-forward and rebase before pushing (handles 'behind' status)
+            git pull --rebase origin $TARGET_BRANCH || echo "Pull failed - possible conflicts; resolve manually"
+
+            # Safe push
+            git push origin $TARGET_BRANCH || echo "Push failed - manual resolution needed (e.g., resolve conflicts)"
+          fi
 
       - name: Debug Git Status (After Sync)
         run: |
           git status
           git log -n 5  # Verify commits
           git remote -v
-          ls -la .github/workflows/  # Confirm workflows are preserved
+          ls -la .github/workflows/ || echo "Workflows directory not found (check if restore worked)"
