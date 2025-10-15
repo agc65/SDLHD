@@ -1,2 +1,27 @@
-- name: Upstream Sync
-  uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
+name: Sync Fork with Upstream  # This is the top-level name for the workflow
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Runs every 30 minutes (adjust frequency as needed, e.g., '0 * * * *' for hourly)
+  workflow_dispatch:  # Allows manual triggering from the GitHub Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest  # The OS for the job (Ubuntu is standard and free)
+    steps:
+      - name: Upstream Sync  # This is the step name you had—now properly nested
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1  # The action you're using
+        with:
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}  # Default token; use a PAT secret if needed for auto-merging
+          upstream_sync_repo: ORIGINAL_OWNER/ORIGINAL_REPO  # e.g., 'octocat/Hello-World' (upstream repo)
+          upstream_sync_branch: main  # Branch in upstream to sync from (e.g., 'main' or 'master')
+          target_sync_branch: main  # Branch in your fork to update (e.g., 'main' or 'master')
+          upstream_pull_args: '--ff-only'  # Optional: Fast-forward only (prevents conflicts; adjust if needed)
+          target_branch_push_args: '--force'  # Optional: Force push if you want to overwrite (use cautiously)
+          test_mode: false  # Set to true for dry-run testing without actual changes
+
+      # Optional: Add a step to notify or handle conflicts (e.g., via email or Slack)
+      # - name: Notify on Failure
+      #   if: failure()
+      #   uses: some-notification-action@v1
+      #   with: ...
