@@ -14,8 +14,8 @@ jobs:
         with:
           target_repo_token: ${{ secrets.GITHUB_TOKEN }}  # Default token; use a PAT secret if needed for auto-merging
           upstream_sync_repo: gookie-dev/StepDaddyLiveHD  # e.g., 'octocat/Hello-World' (upstream repo)
-          upstream_sync_branch: main  # Branch in upstream to sync from (e.g., 'main' or 'master')
-          target_sync_branch: main  # Branch in your fork to update (e.g., 'main' or 'master')
+          upstream_sync_branch: master  # Branch in upstream to sync from (e.g., 'main' or 'master')
+          target_sync_branch: master  # Branch in your fork to update (e.g., 'main' or 'master')
           upstream_pull_args: '--ff-only'  # Optional: Fast-forward only (prevents conflicts; adjust if needed)
           target_branch_push_args: '--force'  # Optional: Force push if you want to overwrite (use cautiously)
           test_mode: false  # Set to true for dry-run testing without actual changes
