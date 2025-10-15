@@ -1,27 +1,62 @@
 name: Sync Fork with Upstream
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'  # Every 30 minutes; adjust as needed
-  workflow_dispatch:  # Manual trigger
+  # schedule:  # Commented out for safety (destructive action); uncomment and adjust if needed
+  #   - cron: '*/30 * * * *'  # Every 30 minutes
+  workflow_dispatch:  # Manual trigger (recommended for testing destructive syncs)
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Fork  # NEW: This checks out your fork's code, required for Git operations
-        uses: actions/checkout@v4  # Use v4 for the latest stable version
+      - name: Checkout Fork
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetches full history to handle merges properly
-          token: ${{ secrets.GITHUB_TOKEN }}  # Or your PAT if needed
+          ref: main  # Your fork's target branch
+          fetch-depth: 0  # Full history for resets
+          token: ${{ secrets.GITHUB_TOKEN }}  # Default token (no PAT needed)
 
-      - name: Upstream Sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
-        with:
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}  # Default; switch to a PAT secret for more permissions
-          upstream_sync_repo: gookie-dev/StepDaddyLiveHD  # e.g., 'octocat/Hello-World'
-          upstream_sync_branch: master  # Upstream branch to sync from
-          target_sync_branch: master  # Your fork's branch to update
-          upstream_pull_args: '--ff-only'  # Fast-forward to avoid conflicts
-          target_branch_push_args: '--force'  # Optional: Use cautiously for overwrites
-          test_mode: false  # Set to true for testing without changes
+      - name: Debug Git Status (Before Sync)
+        run: |
+          git status
+          git branch -a
+          git remote -v
+          ls -la .github/workflows/  # Verify your workflow files exist
+
+      - name: Sync with Upstream (Protecting Workflows, No Force-Push)
+        env:
+          UPSTREAM_REPO: https://github.com/gookie-dev/StepDaddyLiveHD.git  # Full URL of upstream repo (update if needed)
+          UPSTREAM_BRANCH: master  # Upstream branch to copy from
+          TARGET_BRANCH: master  # Your fork's branch to update
+        run: |
+          # Add upstream remote
+          git remote add upstream $UPSTREAM_REPO || true
+          git fetch upstream
+
+          # Backup your workflow files
+          mkdir -p temp-workflows
+          cp -r .github/workflows/* temp-workflows/ || true
+
+          # Reset to upstream (discards your changes)
+          git checkout $TARGET_BRANCH
+          git reset --hard upstream/$UPSTREAM_BRANCH
+
+          # Restore custom workflow files
+          cp -r temp-workflows/* .github/workflows/ || true
+          rm -rf temp-workflows
+
+          # Add restored workflows
+          git add .github/workflows/ || true
+
+          # Commit changes
+          git commit -m "Synced from upstream, preserving custom workflows" || echo "No changes to commit"
+
+          # Safe push (no --force; may fail if divergences prevent it)
+          git push origin $TARGET_BRANCH || echo "Push failed - manual resolution needed (e.g., resolve conflicts or use force locally)"
+
+      - name: Debug Git Status (After Sync)
+        run: |
+          git status
+          git log -n 5  # Verify commits
+          git remote -v
+          ls -la .github/workflows/  # Confirm workflows are preserved
