@@ -25,4 +25,3 @@ jobs:
           upstream_pull_args: '--ff-only'  # Fast-forward to avoid conflicts
           target_branch_push_args: '--force'  # Optional: Use cautiously for overwrites
           test_mode: false  # Set to true for testing without changes
-          git_pull_rebase_config: 'true'  # Optional: Helps with rebase during sync
