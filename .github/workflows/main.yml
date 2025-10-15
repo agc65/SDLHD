@@ -1,27 +1,28 @@
-name: Sync Fork with Upstream  # This is the top-level name for the workflow
+name: Sync Fork with Upstream
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Runs every 30 minutes (adjust frequency as needed, e.g., '0 * * * *' for hourly)
-  workflow_dispatch:  # Allows manual triggering from the GitHub Actions tab
+    - cron: '*/30 * * * *'  # Every 30 minutes; adjust as needed
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   sync:
-    runs-on: ubuntu-latest  # The OS for the job (Ubuntu is standard and free)
+    runs-on: ubuntu-latest
     steps:
-      - name: Upstream Sync  # This is the step name you had—now properly nested
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1  # The action you're using
+      - name: Checkout Fork  # NEW: This checks out your fork's code, required for Git operations
+        uses: actions/checkout@v4  # Use v4 for the latest stable version
         with:
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}  # Default token; use a PAT secret if needed for auto-merging
-          upstream_sync_repo: gookie-dev/StepDaddyLiveHD  # e.g., 'octocat/Hello-World' (upstream repo)
-          upstream_sync_branch: master  # Branch in upstream to sync from (e.g., 'main' or 'master')
-          target_sync_branch: master  # Branch in your fork to update (e.g., 'main' or 'master')
-          upstream_pull_args: '--ff-only'  # Optional: Fast-forward only (prevents conflicts; adjust if needed)
-          target_branch_push_args: '--force'  # Optional: Force push if you want to overwrite (use cautiously)
-          test_mode: false  # Set to true for dry-run testing without actual changes
+          fetch-depth: 0  # Fetches full history to handle merges properly
+          token: ${{ secrets.GITHUB_TOKEN }}  # Or your PAT if needed
 
-      # Optional: Add a step to notify or handle conflicts (e.g., via email or Slack)
-      # - name: Notify on Failure
-      #   if: failure()
-      #   uses: some-notification-action@v1
-      #   with: ...
+      - name: Upstream Sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
+        with:
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}  # Default; switch to a PAT secret for more permissions
+          upstream_sync_repo: gookie-dev/StepDaddyLiveHD  # e.g., 'octocat/Hello-World'
+          upstream_sync_branch: master  # Upstream branch to sync from
+          target_sync_branch: master  # Your fork's branch to update
+          upstream_pull_args: '--ff-only'  # Fast-forward to avoid conflicts
+          target_branch_push_args: '--force'  # Optional: Use cautiously for overwrites
+          test_mode: false  # Set to true for testing without changes
+          git_pull_rebase_config: 'true'  # Optional: Helps with rebase during sync
