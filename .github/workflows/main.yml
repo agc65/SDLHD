@@ -12,7 +12,7 @@ jobs:
       - name: Checkout Fork
         uses: actions/checkout@v4
         with:
-          ref: main  # Your fork's target branch
+          ref: master  # Your fork's target branch
           fetch-depth: 0  # Full history for resets
           token: ${{ secrets.GITHUB_TOKEN }}  # Default token (no PAT needed)
 
